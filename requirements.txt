@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+pymongo>=4.6.0
+firebase-admin
+google-cloud-storage
+python-dotenv
+python-multipart
+pillow
+dnspython>=2.4.2
