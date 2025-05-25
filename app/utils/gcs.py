@@ -14,7 +14,7 @@ if os.environ.get("FIREBASE_KEY_JSON"):
         cred_dict["private_key"] = cred_dict["private_key"].replace('\\n', '\n').replace('\\\n', '\n')
         if '\\n' in cred_dict["private_key"] or '\\\n' in cred_dict["private_key"]:
             cred_dict["private_key"] = cred_dict["private_key"].replace('\\n', '\n').replace('\\\n', '\n')
-    print(f"Credenciales: {cred_dict}")
+    #print(f"Credenciales: {cred_dict}")
     # Usar el diccionario de credenciales directamente en lugar de un archivo temporal
     cred = credentials.Certificate(cred_dict)
 else:

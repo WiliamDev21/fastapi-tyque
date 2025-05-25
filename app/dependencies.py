@@ -12,7 +12,7 @@ def get_db():
     if not mongo_uri:
         mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
     mongo_uri = mongo_uri.replace("MONGO_URI=", "")  # Por si viene con prefijo
-    print("MONGO_URI:", mongo_uri)
+    #print("MONGO_URI:", mongo_uri)
     client = MongoClient(mongo_uri)
     db = client["tyquedb"]
     try:
