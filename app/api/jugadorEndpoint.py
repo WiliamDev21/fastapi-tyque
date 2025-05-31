@@ -1,17 +1,25 @@
 # Endpoint para los jugadores de las quinielas
-from fastapi import APIRouter, Form, Depends, status, HTTPException
+from fastapi import APIRouter, Form, Depends, status, HTTPException, Security
+from fastapi.security import APIKeyHeader
 from app.models.jugador import Jugador
 from app.dependencies import get_db
-from app.utils.utils import createCode
+from app.utils.utils import createCode, validateKey
 
 router = APIRouter(prefix="/api", tags=["Jugadores"])
 
+api_key_header = APIKeyHeader(name="API-KEY", auto_error=False)
+
+def require_valid_key(api_key: str = Security(api_key_header)):
+    if not api_key or not validateKey(api_key):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="API key inválida o no proporcionada")
+
 # Endpoint para crear un nuevo jugador
-@router.post("/jugadores/", response_model=Jugador, status_code=status.HTTP_201_CREATED, summary="Crear un nuevo jugador", description="Crea un nuevo jugador y lo agrega al equipo especificado.")
+@router.post("/jugadores", response_model=Jugador, status_code=status.HTTP_201_CREATED, summary="Crear un nuevo jugador", description="Crea un nuevo jugador y lo agrega al equipo especificado.")
 def create_jugador(
     quinielaCode: str = Form(..., description="Código de la quiniela a la que pertenece el jugador"),
     name: str = Form(..., description="Nombre del jugador"),
-    db=Depends(get_db)
+    db=Depends(get_db),
+    _: None = Depends(require_valid_key)
 ):
     """Crea un nuevo jugador y lo agrega a la quiniela correspondiente."""
     code = createCode(quinielaCode)
@@ -30,7 +38,7 @@ def create_jugador(
 
 # Endpoint para obtener un jugador por su código
 @router.get("/jugadores/{jugador_code}", response_model=Jugador, status_code=status.HTTP_200_OK, summary="Obtener un jugador", description="Obtiene la información de un jugador por su código.")
-def get_jugador(jugador_code: str, db=Depends(get_db)):
+def get_jugador(jugador_code: str, db=Depends(get_db), _: None = Depends(require_valid_key)):
     """Obtiene la información de un jugador por su código."""
     code_quiniela = jugador_code[:5]
     jugador_data = db.quinielas.find_one(
@@ -43,7 +51,7 @@ def get_jugador(jugador_code: str, db=Depends(get_db)):
 
 # Endpoint para obtener todos los jugadores de una quiniela
 @router.get("/jugadores/quiniela/{quiniela_code}", response_model=list[Jugador], status_code=status.HTTP_200_OK, summary="Obtener jugadores de una quiniela", description="Obtiene todos los jugadores de una quiniela específica.")
-def get_jugadores_quiniela(quiniela_code: str, db=Depends(get_db)):
+def get_jugadores_quiniela(quiniela_code: str, db=Depends(get_db), _: None = Depends(require_valid_key)):
     """Obtiene todos los jugadores de una quiniela específica."""
     quiniela_data = db.quinielas.find_one({"code": quiniela_code}, {"jugadores": 1})
     if not quiniela_data or not quiniela_data.get("jugadores"):
@@ -55,7 +63,8 @@ def get_jugadores_quiniela(quiniela_code: str, db=Depends(get_db)):
 def agregar_predicciones_jugador(
     jugador_code: str,
     predicciones: dict = Form(..., description="Predicciones del jugador en formato JSON"),
-    db=Depends(get_db)
+    db=Depends(get_db),
+    _: None = Depends(require_valid_key)
 ):
     """Agrega las predicciones de un jugador para una quiniela."""
     code_quiniela = jugador_code[:5]
@@ -72,4 +81,15 @@ def agregar_predicciones_jugador(
     )
     return Jugador(**jugador_data["jugadores"][0])
 
-    
+# Endpoint para eliminar un jugador por su código
+@router.delete("/jugadores/{jugador_code}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar un jugador", description="Elimina un jugador por su código.")
+def delete_jugador(jugador_code: str, db=Depends(get_db), _: None = Depends(require_valid_key)):
+    code_quiniela = jugador_code[:5]
+    result = db.quinielas.update_one(
+        {"code": code_quiniela},
+        {"$pull": {"jugadores": {"code": jugador_code}}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Jugador no encontrado")
+    return
+

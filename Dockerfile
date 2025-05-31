@@ -4,13 +4,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && apt-get install -y tzdata ntpdate && ln -fs /usr/share/zoneinfo/America/Mexico_City /etc/localtime && dpkg-reconfigure -f noninteractive tzdata && pip install --no-cache-dir -r requirements.txt
 
 COPY ./app ./app
-
-ENV PYTHONPATH=/app
+COPY serviceAccountKey.json /app/serviceAccountKey.json
 
 EXPOSE 8080
+
 
 #CMD ["sh", "-c", "ls -lR /app && sleep 300"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

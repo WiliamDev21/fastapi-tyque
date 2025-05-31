@@ -1,8 +1,8 @@
-
 from PIL import Image
 from io import BytesIO
 import random
 import string
+import json
 
 from fastapi import Depends
 from ..dependencies import get_db
@@ -35,3 +35,13 @@ def actualizarAciertos(partido_code: str,ganador_code: str, db=Depends(get_db)):
                     {"code": quiniela["code"], "jugadores.code": jugador["code"]},
                     {"$inc": {"jugadores.$.aciertos": 1}}
                 )
+
+def validateKey(key: str):
+    try: 
+        with open("serviceAccountKey.json", "r") as file:
+            data = json.load(file)
+            file.close()
+        return data.get("private_key") == key
+    except Exception as e:
+        print(f"Error al leer el archivo serviceAccountKey.json: {e}")
+        return False
